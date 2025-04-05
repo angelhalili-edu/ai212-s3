@@ -1,0 +1,19 @@
+@startuml MT19937_Simplified_Core_Logic
+title MT19937 Algorithm\n<i>Simplified Core Logic</i>
+start
+:Input seed;
+:Initialize state[624];
+:Set **index = 0**;
+
+repeat
+  if (**index >= 624**?) then (yes)
+    :**Twist** state array;
+    :Reset **index = 0**;
+  else (no)
+  endif
+  :Temper **state[index]**;
+  :**Output** 32-bit tempered value;
+  :Increment **index += 1**;
+repeat while (Continue generation?) is (Yes)
+stop
+@enduml

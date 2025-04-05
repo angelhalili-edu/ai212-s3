@@ -1,0 +1,71 @@
+@startuml MT19337_Detailed_Sequence_Diagram
+title "MT19337 Algorithm\n<i>a more detailed flowchart</i>"
+actor "User Code" as User
+participant "mt_state" as State
+participant "initialize_state(seed)" as Init
+participant "random_uint32()" as Gen
+
+group #ghostwhite Initialize
+    activate Init
+    User -> Init : Call with (mt_state*, seed)
+    Init -> State : Access state_array[0] = seed
+    note right: where <b>state_array</b> is the array for the state vector\nand <b>seed</b> is the initial seed value</i>
+    loop i = 1 to 623
+        Init -> State : state_array[i] = f * (seed ^ (seed >> 30)) + i
+        note right: where <b>f</b> is a constant multiplier <i>1812433253</i>
+    end
+    Init -> State : state_index = 0
+    Init --> User : Done initializing
+    deactivate Init
+end
+
+User -> Gen : Call random_uint32()
+activate Gen
+note right: On the 624th call, the state vector is <b>twisted</b>
+
+alt if (state_index >= 624)
+    group #application Twisting 
+        loop k = 0 to N-M-1
+            Gen -> State : y = (state_array[k] & UPPER_MASK) | (state_array[k+1] & LOWER_MASK)
+            note right: where:\n  <b>N</b>=624\n  <b>M</b>=397\n  <b>UPPER_MASK</b>=0x80000000\n  <b>LOWER_MASK</b>=0x7FFFFFFF
+            Gen -> State : state_array[k] = state_array[k+M] ^ (y >> 1) ^ xor_matA_on_odd[y & 1]
+            note right
+                xor_matA_on_odd[0] = 0x0 (no-op)
+                xor_matA_on_odd[1] = MATRIX_A (do XOR if y is odd)
+
+                <b>Mathematical Note:</b>
+                The Twist Operation is a linear transformation acting on
+                a 19937-dimensional subspace (F₂¹⁹⁹³⁷). 
+
+                The constant MATRIX_A (0x9908B0DF) compactly represents
+                a critical component of this transformation.
+            end note
+        end
+
+        loop k = N-M to N-2
+            Gen -> State : y = (state_array[k] & UPPER_MASK) | (state_array[k+1] & LOWER_MASK)
+            Gen -> State : state_array[k] = state_array[k+(M-N)] ^ (y >> 1) ^ xor_matA_on_odd[y & 1]
+        end
+
+        Gen -> State : y = (state_array[N-1] & UPPER_MASK) | (state_array[0] & LOWER_MASK)
+        Gen -> State : state_array[N-1] = state_array[M-1] ^ (y >> 1) ^ xor_matA_on_odd[y & 1]
+
+        Gen -> State : state_index = 0
+    end
+end
+
+Gen -> State : y = state_array[state_index++]
+
+group #honeydew Tempering
+    Gen -> Gen : y ^= (y >> 11)
+    Gen -> Gen : y ^= (y << 7) & TEMPERING_MASK_B
+    note left: where:\n  <b>TEMPERING_MASK_B</b>=0x9D2C5680
+    Gen -> Gen : y ^= (y << 15) & TEMPERING_MASK_C
+    note left: where:\n  <b>TEMPERING_MASK_C</b>=0xEFC60000
+    Gen -> Gen : y ^= (y >> 18)
+end
+
+Gen --> User : return y
+deactivate Gen
+
+@enduml

@@ -1,7 +1,8 @@
 @startuml MT19337_Detailed_Sequence_Diagram
-title "MT19337 Algorithm\n<i>a more detailed flowchart</i>"
+title "MT19337 Algorithm\n<i>Sequence Diagram</i>"
 actor "User Code" as User
-participant "mt_state" as State
+entity "mt_state" as State
+activate State
 participant "initialize_state(seed)" as Init
 participant "random_uint32()" as Gen
 
@@ -15,13 +16,14 @@ group #ghostwhite Initialize
         note right: where <b>f</b> is a constant multiplier <i>1812433253</i>
     end
     Init -> State : state_index = 0
+    note right: where <b>state_index</b> is the index of the current state
     Init --> User : Done initializing
     deactivate Init
 end
 
 User -> Gen : Call random_uint32()
 activate Gen
-note right: On the 624th call, the state vector is <b>twisted</b>
+note right: On the 624th call of this function, the state vector is <b>twisted</b>.\nThis also implies that 624 words are generated at a time.
 
 alt if (state_index >= 624)
     group #application Twisting 
